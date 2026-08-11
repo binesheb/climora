@@ -9,7 +9,7 @@
 namespace {
 constexpr const char* OTA_API_URL = "https://api.github.com/repos/binesheb/climora/releases/latest";
 constexpr const char* OTA_ASSET_NAME = "climora-firmware.bin";
-constexpr const char* DEFAULT_VERSION = "5.4.0";
+constexpr const char* DEFAULT_VERSION = "5.5.0";
 constexpr unsigned long OTA_FIRST_CHECK_DELAY_MS = 15000UL;
 constexpr unsigned long OTA_CHECK_INTERVAL_MS = 21600000UL;
 constexpr size_t OTA_JSON_CAPACITY = 8192;
