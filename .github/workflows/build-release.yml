@@ -42,6 +42,7 @@ jobs:
         run: |
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
+            --board-options PartitionScheme=min_spiffs \
             --output-dir .build/out \
             .build/sketch
 
