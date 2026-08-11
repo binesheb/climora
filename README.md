@@ -20,6 +20,10 @@ Create a semantic version tag such as `v5.6.0`. GitHub Actions compiles the ESP3
 
 The ESP32 then discovers that release automatically.
 
+### CI validation
+
+Every push to the v5.5 development branch is compiled automatically before it is considered ready for release.
+
 ## Hardware
 
 - ESP32
