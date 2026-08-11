@@ -4,6 +4,7 @@
 #include <Update.h>
 #include <Preferences.h>
 #include <WiFiClientSecure.h>
+#include <mbedtls/sha256.h>
 
 namespace {
 constexpr const char* OTA_API_URL = "https://api.github.com/repos/binesheb/climora/releases/latest";
@@ -98,7 +99,7 @@ bool fetchLatestRelease(String& version, String& assetUrl, size_t& assetSize, St
   return false;
 }
 
-bool performUpdate(const String& version, const String& assetUrl, size_t expectedSize) {
+bool performUpdate(const String& version, const String& assetUrl, size_t expectedSize, const String& expectedDigest) {
   WiFiClientSecure client;
   client.setInsecure();
 
@@ -140,6 +141,10 @@ bool performUpdate(const String& version, const String& assetUrl, size_t expecte
   uint8_t buffer[2048];
   unsigned long lastProgress = 0;
 
+  mbedtls_sha256_context sha;
+  mbedtls_sha256_init(&sha);
+  mbedtls_sha256_starts_ret(&sha, 0);
+
   while (http.connected() && (contentLength <= 0 || written < (size_t)contentLength)) {
     size_t available = stream->available();
     if (available) {
@@ -153,8 +158,11 @@ bool performUpdate(const String& version, const String& assetUrl, size_t expecte
         otaLog("Flash write failed, error=" + String(Update.getError()));
         Update.abort();
         http.end();
+        mbedtls_sha256_free(&sha);
         return false;
       }
+
+      mbedtls_sha256_update_ret(&sha, buffer, (size_t)read);
       written += w;
 
       if (millis() - lastProgress >= 1000) {
@@ -170,10 +178,32 @@ bool performUpdate(const String& version, const String& assetUrl, size_t expecte
   http.end();
 
   if (contentLength > 0 && written != (size_t)contentLength) {
+    mbedtls_sha256_free(&sha);
     otaLog("Incomplete download: " + String(written) + "/" + String(contentLength));
     Update.abort();
     return false;
   }
+
+  uint8_t hash[32];
+  mbedtls_sha256_finish_ret(&sha, hash);
+  mbedtls_sha256_free(&sha);
+
+  String actualDigest = "sha256:";
+  const char* hex = "0123456789abcdef";
+  for (size_t i = 0; i < sizeof(hash); ++i) {
+    actualDigest += hex[(hash[i] >> 4) & 0x0F];
+    actualDigest += hex[hash[i] & 0x0F];
+  }
+
+  if (expectedDigest.length() == 0 || !expectedDigest.equalsIgnoreCase(actualDigest)) {
+    otaLog("SHA-256 verification failed");
+    otaLog("Expected=" + expectedDigest);
+    otaLog("Actual=" + actualDigest);
+    Update.abort();
+    return false;
+  }
+
+  otaLog("SHA-256 verified");
 
   if (!Update.end(true)) {
     otaLog("Update.end failed, error=" + String(Update.getError()));
@@ -219,9 +249,9 @@ void checkForUpdate() {
 
   otaLog("Update available: " + current + " -> " + latest);
   otaLog("Asset size=" + String(assetSize) + " bytes");
-  if (digest.length()) otaLog("Release digest=" + digest);
+  otaLog("Release digest=" + digest);
 
-  performUpdate(latest, assetUrl, assetSize);
+  performUpdate(latest, assetUrl, assetSize, digest);
 }
 
 void otaTask(void*) {
