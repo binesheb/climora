@@ -1,0 +1,63 @@
+name: Build and Release CLIMORA
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Configure ESP32 core
+        run: |
+          arduino-cli config init
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib install FastLED
+          arduino-cli lib install ArduinoJson
+
+      - name: Prepare sketch
+        run: |
+          mkdir -p .build/sketch .build/out
+          cp *.ino .build/sketch/
+          cp *.cpp .build/sketch/ 2>/dev/null || true
+          cp *.h .build/sketch/ 2>/dev/null || true
+
+      - name: Compile ESP32 firmware
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32 \
+            --output-dir .build/out \
+            .build/sketch
+
+      - name: Verify firmware binary
+        run: |
+          test -s .build/out/*.ino.bin
+          ls -lh .build/out/*.ino.bin
+
+      - name: Rename firmware
+        run: |
+          cp .build/out/*.ino.bin climora-firmware.bin
+          ls -lh climora-firmware.bin
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: climora-firmware.bin
