@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -67,14 +67,25 @@ jobs:
             climora-firmware.bin
             climora-firmware.bin.sha256
 
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: climora-firmware-${{ github.sha }}
+          path: release
+
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
-        permissions:
-          contents: write
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            climora-firmware.bin
-            climora-firmware.bin.sha256
+            release/climora-firmware.bin
+            release/climora-firmware.bin.sha256
