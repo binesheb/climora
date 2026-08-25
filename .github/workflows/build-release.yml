@@ -36,7 +36,7 @@ jobs:
       - name: Prepare sketch
         run: |
           mkdir -p .build/sketch .build/out
-          cp *.ino .build/sketch/
+          cp *.ino .build/sketch/sketch.ino
           cp *.cpp .build/sketch/ 2>/dev/null || true
           cp *.h .build/sketch/ 2>/dev/null || true
 
