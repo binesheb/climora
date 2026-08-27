@@ -2,9 +2,9 @@
 
 ## Automatic firmware updates
 
-CLIMORA firmware checks **GitHub `main` only** for an approved update manifest. It must not automatically update from feature branches, development branches, tags, or release assets.
+CLIMORA checks the latest published GitHub Release for an approved `climora-firmware.bin` after Wi-Fi becomes available and then periodically. The device only considers a newer semantic version and validates the release asset size before writing the OTA partition. If the check, download, size validation, or flash write fails, the current firmware continues running.
 
-The device should only install firmware after the configured update manifest identifies a newer version and the firmware passes the updater's validation checks. If the check or download fails, the current firmware continues running.
+The checked-in updater does **not yet** enforce a `main`-only source policy or verify the published SHA-256 checksum before installation. Do not treat those protections as active until the firmware and release process are updated together.
 
 ## Manual update
 
@@ -17,7 +17,7 @@ Before flashing, compile the sketch with the declared ESP32 board configuration 
 - ArduinoJson
 - `PartitionScheme=min_spiffs`
 
-The GitHub Actions workflow provides the same repeatable build configuration for `main`.
+The GitHub Actions workflow provides the same repeatable build configuration for `main` and version tags.
 
 ## Recovery
 
