@@ -53,6 +53,7 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=min_spiffs \
+            --build-property 'compiler.cpp.extra_flags=-Dmbedtls_sha256_starts_ret=mbedtls_sha256_starts -Dmbedtls_sha256_update_ret=mbedtls_sha256_update -Dmbedtls_sha256_finish_ret=mbedtls_sha256_finish' \
             --output-dir .build/out \
             .build/sketch
 
