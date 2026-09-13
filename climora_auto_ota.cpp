@@ -14,6 +14,7 @@ namespace {
 constexpr const char* OTA_API_URL = "https://api.github.com/repos/binesheb/climora/releases/latest";
 constexpr const char* OTA_ASSET_NAME = "climora-firmware.bin";
 constexpr const char* OTA_CHECKSUM_ASSET_NAME = "climora-firmware.bin.sha256";
+constexpr const char* OTA_ALLOWED_SOURCE = "main";
 constexpr const char* DEFAULT_VERSION = "5.5.0";
 constexpr unsigned long OTA_FIRST_CHECK_DELAY_MS = 15000UL;
 constexpr unsigned long OTA_CHECK_INTERVAL_MS = 21600000UL;
@@ -117,6 +118,12 @@ bool fetchLatestRelease(String& version, String& assetUrl, size_t& assetSize, St
   }
 
   version = doc["tag_name"] | "";
+  const char* source = doc["target_commitish"] | "";
+  if (String(source) != OTA_ALLOWED_SOURCE) {
+    otaLog("Rejected release: target source is '" + String(source) + "', expected '" + OTA_ALLOWED_SOURCE + "'");
+    return false;
+  }
+
   JsonArray assets = doc["assets"].as<JsonArray>();
   for (JsonObject asset : assets) {
     const char* name = asset["name"] | "";
@@ -331,100 +338,33 @@ void checkForUpdate() {
     return;
   }
 
-  otaLog("Latest release=" + latest);
-  if (compareVersions(current, latest) >= 0) {
-    otaLog("Firmware is up to date");
+  if (compareVersions(latest, current) <= 0) {
+    otaLog("No update available (latest=" + latest + ")");
     otaVisualState = OTA_VISUAL_IDLE;
     return;
   }
 
   String expectedSha256;
   if (!fetchExpectedSha256(checksumUrl, expectedSha256)) {
-    otaLog("Unable to obtain a valid firmware SHA-256; refusing update");
+    otaLog("Invalid or unavailable firmware SHA-256 checksum");
     otaVisualState = OTA_VISUAL_IDLE;
     return;
   }
 
-  otaLog("Update available: " + current + " -> " + latest);
-  otaLog("Asset size=" + String(assetSize) + " bytes");
-  otaLog("Expected SHA-256=" + expectedSha256);
   performUpdate(latest, assetUrl, assetSize, expectedSha256);
 }
 
-void renderOTAVisual() {
-  static uint16_t phase = 0;
-  phase++;
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
-
-  if (otaVisualState == OTA_VISUAL_CHECKING) {
-    const int barWidth = 10;
-    int center = (phase / 2) % NUM_LEDS;
-    for (int offset = -barWidth / 2; offset <= barWidth / 2; ++offset) {
-      int pos = center + offset;
-      if (pos < 0) pos += NUM_LEDS;
-      if (pos >= NUM_LEDS) pos -= NUM_LEDS;
-      int distance = abs(offset);
-      uint8_t brightness = 220 - distance * 28;
-      leds[pos] = CRGB((uint8_t)(brightness * 0.70f),
-                       (uint8_t)(brightness * 0.82f), brightness);
-    }
-    for (int i = 0; i < NUM_LEDS; ++i) {
-      if (leds[i].getLuma() == 0) leds[i] = CRGB(8, 10, 14);
-    }
-  }
-  else if (otaVisualState == OTA_VISUAL_UPDATING) {
-    float breath = sin8(phase) / 255.0f;
-    breath *= breath;
-    uint8_t centerBrightness = 40 + (uint8_t)(205.0f * breath);
-    int halfWidth = 11;
-    int center = (NUM_LEDS - 1) / 2;
-
-    for (int i = 0; i < NUM_LEDS; ++i) {
-      float distance = abs(i - center);
-      float falloff = 1.0f - distance / (float)(halfWidth + 1);
-      if (falloff < 0.0f) falloff = 0.0f;
-      uint8_t value = (uint8_t)(centerBrightness * falloff);
-      leds[i] = CRGB(value, value, value);
-    }
-
-    int filled = (otaProgressPercent * NUM_LEDS) / 100;
-    for (int i = 0; i < filled && i < NUM_LEDS; ++i) {
-      uint8_t core = max<uint8_t>(leds[i].r, 70);
-      leds[i] = CRGB(core, core, core);
-    }
-  }
-}
-
-void otaUpdateTask(void*) {
+void otaTask(void*) {
   delay(OTA_FIRST_CHECK_DELAY_MS);
-  unsigned long lastCheck = 0;
-  bool first = true;
+  checkForUpdate();
   for (;;) {
-    if (WiFi.status() == WL_CONNECTED && (first || millis() - lastCheck >= OTA_CHECK_INTERVAL_MS)) {
-      first = false;
-      lastCheck = millis();
-      checkForUpdate();
-    }
-    delay(1000);
+    delay(OTA_CHECK_INTERVAL_MS);
+    checkForUpdate();
   }
 }
 
-void otaVisualTask(void*) {
-  for (;;) {
-    if (otaVisualState != OTA_VISUAL_IDLE) {
-      renderOTAVisual();
-      FastLED.show();
-    }
-    delay(25);
-  }
+void startAutoOTA() {
+  if (otaTaskHandle != nullptr) return;
+  xTaskCreatePinnedToCore(otaTask, "climora-ota", 8192, nullptr, 1, &otaTaskHandle, 1);
 }
-
-struct AutoOTAStarter {
-  AutoOTAStarter() {
-    xTaskCreatePinnedToCore(otaUpdateTask, "climora_ota", 12288, nullptr, 1, &otaTaskHandle, 0);
-    xTaskCreatePinnedToCore(otaVisualTask, "climora_ota_led", 4096, nullptr, 1, nullptr, 1);
-  }
-};
-
-AutoOTAStarter autoOTAStarter;
 }
