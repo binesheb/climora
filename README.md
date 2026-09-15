@@ -10,15 +10,15 @@ The firmware is designed for an ESP32 with an OTA-capable partition scheme.
 
 The current OTA implementation checks the latest published GitHub Release after Wi-Fi becomes available and then every 6 hours.
 
-The updater compares semantic versions, validates the expected asset size, downloads `climora-firmware.bin`, validates the published `climora-firmware.bin.sha256` digest over TLS, writes the OTA partition, and reboots only after a successful update. If GitHub, the checksum, the download, or validation is unavailable or fails, the existing firmware continues running.
+The updater compares semantic versions, requires the release to target `main`, validates the expected asset size, downloads `climora-firmware.bin`, validates the published `climora-firmware.bin.sha256` digest over TLS, writes the OTA partition, and reboots only after a successful update. If GitHub, TLS certificate validation, the source policy, the checksum, the download, or validation is unavailable or fails, the existing firmware continues running.
 
-> **Current implementation note:** TLS certificate validation and firmware SHA-256 verification are enforced by the checked-in OTA code. The updater still follows the GitHub `releases/latest` source and does not yet enforce the documented `main`-only source policy; that remains follow-up hardening work and must not be represented as an active protection.
+> **Security note:** TLS certificate validation, `main`-only release-source enforcement, and firmware SHA-256 verification are enforced by the checked-in OTA code. The release workflow also requires version tags to originate from `main`, validates the tag against `CHANGELOG.md`, and publishes the firmware checksum alongside the binary.
 
 The first installation of the OTA-capable firmware must still be done by USB. After that, subsequent approved updates can be installed automatically.
 
 ### Release process
 
-Use Semantic Versioning tags such as `v5.6.0`. The repository workflow builds the ESP32 firmware with the OTA-capable **Minimal SPIFFS (1.9MB APP with OTA/190KB SPIFFS)** partition scheme and publishes both `climora-firmware.bin` and its SHA-256 checksum. A release should only be published after the updater's source-policy requirements are satisfied.
+Use Semantic Versioning tags such as `v5.6.0`. The repository workflow builds the ESP32 firmware with the OTA-capable **Minimal SPIFFS (1.9MB APP with OTA/190KB SPIFFS)** partition scheme and publishes both `climora-firmware.bin` and its SHA-256 checksum. Release tags must originate from `main` and must have a matching entry in `CHANGELOG.md`.
 
 ### CI validation
 
