@@ -2,9 +2,9 @@
 
 ## Automatic firmware updates
 
-CLIMORA checks the latest published GitHub Release for an approved `climora-firmware.bin` after Wi-Fi becomes available and then periodically. The device only considers a newer semantic version, validates the release asset size, validates the published `climora-firmware.bin.sha256` digest over TLS, and only then writes the OTA partition. If the check, certificate validation, checksum, download, size validation, or flash write fails, the current firmware continues running.
+CLIMORA checks the latest published GitHub Release for an approved `climora-firmware.bin` after Wi-Fi becomes available and then periodically. The device only considers a newer semantic version, requires the release to target `main`, validates the release asset size, validates the published `climora-firmware.bin.sha256` digest over TLS, and only then writes the OTA partition. If the check, certificate validation, source policy, checksum, download, size validation, or flash write fails, the current firmware continues running.
 
-The checked-in updater does **not yet** enforce a `main`-only source policy: it currently requests GitHub's `releases/latest` endpoint. Do not treat a main-branch source policy as active until the firmware and release process are updated together.
+The checked-in updater enforces the `main`-only source policy by rejecting releases whose `target_commitish` is not `main`. The release workflow also requires version tags to originate from `main` and to have a matching entry in `CHANGELOG.md`.
 
 ## Manual update
 
