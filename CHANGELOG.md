@@ -4,11 +4,8 @@ All notable changes to CLIMORA are documented here. This project follows [Semant
 
 ## [Unreleased]
 
-### Added
-- Release and CI artifacts now include a SHA-256 checksum file for the compiled firmware binary, enabling independent integrity verification.
-
 ### Fixed
-- Clarified the actual OTA validation guarantees so SHA-256 verification and `main`-only source enforcement are not documented as active protections before they are implemented.
+- Aligned OTA documentation with the implemented `main`-only release-source enforcement and firmware SHA-256 verification.
 
 ## [5.5.0]
 
@@ -16,3 +13,4 @@ All notable changes to CLIMORA are documented here. This project follows [Semant
 - Automatic OTA update checks for newer firmware releases.
 - OTA progress and status visuals.
 - Firmware build validation workflow.
+- Release and CI artifacts include a SHA-256 checksum file for the compiled firmware binary, enabling independent integrity verification.
