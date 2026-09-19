@@ -41,7 +41,7 @@ constexpr const char* OTA_ROOT_CA =
 "1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4\n"
 "NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG\n"
 "Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91\n"
-"8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe\n"
+"8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6L3/iyK5S9kJRaTe\n"
 "pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl\n"
 "MrY=\n"
 "-----END CERTIFICATE-----\n";
@@ -65,12 +65,34 @@ void storeVersion(const String& v) {
   otaPrefs.end();
 }
 
+bool parseSemVer(const String& input, int parts[3]) {
+  String value = input;
+  if (value.startsWith("v") || value.startsWith("V")) value.remove(0, 1);
+
+  int first = value.indexOf('.');
+  int second = first < 0 ? -1 : value.indexOf('.', first + 1);
+  if (first <= 0 || second <= first + 1 || second >= (int)value.length() - 1) return false;
+  if (value.indexOf('.', second + 1) >= 0) return false;
+
+  String components[3] = {
+    value.substring(0, first),
+    value.substring(first + 1, second),
+    value.substring(second + 1)
+  };
+
+  for (int i = 0; i < 3; ++i) {
+    if (components[i].length() == 0) return false;
+    for (size_t j = 0; j < components[i].length(); ++j) {
+      if (!isDigit(components[i][j])) return false;
+    }
+    parts[i] = components[i].toInt();
+  }
+  return true;
+}
+
 int compareVersions(String a, String b) {
-  if (a.startsWith("v") || a.startsWith("V")) a.remove(0, 1);
-  if (b.startsWith("v") || b.startsWith("V")) b.remove(0, 1);
   int ai[3] = {0,0,0}, bi[3] = {0,0,0};
-  sscanf(a.c_str(), "%d.%d.%d", &ai[0], &ai[1], &ai[2]);
-  sscanf(b.c_str(), "%d.%d.%d", &bi[0], &bi[1], &bi[2]);
+  if (!parseSemVer(a, ai) || !parseSemVer(b, bi)) return 0;
   for (int i = 0; i < 3; ++i) {
     if (ai[i] < bi[i]) return -1;
     if (ai[i] > bi[i]) return 1;
@@ -121,6 +143,12 @@ bool fetchLatestRelease(String& version, String& assetUrl, size_t& assetSize, St
   const char* source = doc["target_commitish"] | "";
   if (String(source) != OTA_ALLOWED_SOURCE) {
     otaLog("Rejected release: target source is '" + String(source) + "', expected '" + OTA_ALLOWED_SOURCE + "'");
+    return false;
+  }
+
+  int releaseParts[3];
+  if (!parseSemVer(version, releaseParts)) {
+    otaLog("Rejected release: invalid semantic version '" + version + "'");
     return false;
   }
 
