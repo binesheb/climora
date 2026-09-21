@@ -74,6 +74,7 @@ jobs:
         run: |
           cp .build/out/*.ino.bin climora-firmware.bin
           sha256sum climora-firmware.bin > climora-firmware.bin.sha256
+          sha256sum -c climora-firmware.bin.sha256
           cat climora-firmware.bin.sha256
 
       - name: Upload build artifact
