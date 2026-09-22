@@ -5,6 +5,7 @@ All notable changes to CLIMORA are documented here. This project follows [Semant
 ## [Unreleased]
 
 ### Fixed
+- Pinned the ESP32 Arduino core and firmware libraries in CI to the versions used by the last verified build, preventing silent dependency drift from changing release artifacts.
 - Aligned OTA documentation with the implemented `main`-only release-source enforcement and firmware SHA-256 verification.
 
 ## [5.5.0]
