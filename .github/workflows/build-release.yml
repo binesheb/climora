@@ -42,12 +42,12 @@ jobs:
         run: |
           arduino-cli config init
           arduino-cli core update-index
-          arduino-cli core install esp32:esp32
+          arduino-cli core install esp32:esp32@3.3.11
 
       - name: Install libraries
         run: |
-          arduino-cli lib install FastLED
-          arduino-cli lib install ArduinoJson
+          arduino-cli lib install FastLED@3.10.5
+          arduino-cli lib install ArduinoJson@7.4.3
 
       - name: Prepare sketch
         run: |
